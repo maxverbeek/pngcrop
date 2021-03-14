@@ -5,8 +5,6 @@ use image::DynamicImage;
 use image::io::Reader as ImageReader;
 use image::error::ImageResult;
 
-use std::cmp::{min,max};
-
 const USAGE: &str = "
 Crop PNG files to their minimal bounding box
 
@@ -99,4 +97,12 @@ fn find_boundaries(img: &image::RgbaImage) -> ContentBounds {
     }
 
     bounds
+}
+
+fn min<T: Ord>(a: T, b: T) -> T {
+    if a < b { a } else { b }
+}
+
+fn max<T: Ord>(a: T, b: T) -> T {
+    if a > b { a } else { b }
 }
