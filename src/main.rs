@@ -10,31 +10,47 @@ Crop PNG files to their minimal bounding box
 
 Usage:
     pngcrop <file>...
+    pngcrop -o <output> <source>
     pngcrop -h | --help
 
 Options:
-    -h --help  Show these options
+    -h --help                   Show these options
+    -o <file>, --output <file>  Specify the output path
 ";
 
 #[derive(Debug, Deserialize)]
 struct Args {
     arg_file: Vec<String>,
+    flag_output: Option<String>,
+    arg_source: Option<String>,
 }
 
 fn main() {
-    println!("Hello, world!");
-
     let args: Args = Docopt::new(USAGE)
         .and_then(|d| d.deserialize())
         .unwrap_or_else(|e| e.exit());
 
     println!("{:?}", args);
 
-    for arg in &args.arg_file {
-        match process_file(arg) {
-            Ok(_) => {}
-            Err(e) => { println!("{} does not exist or is not a valid PNG: {}", arg, e); }
-        }
+    if let (Some(src), Some(dest)) = (args.arg_source, args.flag_output) {
+        try_conversion(&src, &dest);
+        return;
+    }
+
+    for path in &args.arg_file {
+        let dest = find_destination(path);
+        try_conversion(&path, &dest);
+    }
+}
+
+fn find_destination(source: &String) -> &String {
+    source
+}
+
+fn try_conversion(path: &String, dest: &String) {
+    match process_file(path, dest) {
+        Ok(_) => {}
+        Err(e) => { println!("{} does not exist or is not a valid PNG: {}", path, e); }
     }
 }
 
@@ -56,10 +72,10 @@ impl ContentBounds {
     }
 }
 
-fn process_file(file: &String) -> ImageResult<()> {
-    println!("{}", file);
+fn process_file(path: &String, dest: &String) -> ImageResult<()> {
+    println!("{}", path);
 
-    let img = ImageReader::open(file)?.decode()?;
+    let img = ImageReader::open(path)?.decode()?;
     let has_alpha = img.color().has_alpha();
     
     if !has_alpha {
@@ -69,8 +85,6 @@ fn process_file(file: &String) -> ImageResult<()> {
     let canvas = img.into_rgba8();
 
     let bounds = find_boundaries(&canvas);
-
-    let dest = "cropped_".to_owned() + file;
 
     DynamicImage::ImageRgba8(canvas).crop(bounds.minx, bounds.miny, bounds.width(), bounds.height()).save(dest)
 }
